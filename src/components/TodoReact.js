@@ -1,126 +1,123 @@
-import { useReducer, useRef } from "react";
+import { useReducer, useRef, useState } from "react";
+import EditModal from "./EditModal";
+import ListModal from "./ListModal";
 
-const initState = { jobName: "", noteContent: "", jobList: [] };
-const reducer = (state, actions) => {
-  switch (actions.type) {
-    case "set-value":
+const initState = {
+  taskName: "",
+  taskList: [],
+};
+
+// action
+const setTaskName = (value) => {
+  return {
+    type: "set-task",
+    value,
+  };
+};
+const addTask = (addNewTask) => {
+  return {
+    type: "add-task",
+    addNewTask,
+  };
+};
+const deleteTask = (index) => {
+  return {
+    type: "delete-task",
+    index,
+  };
+};
+const reducer = (state, action) => {
+  switch (action.type) {
+    case "set-task":
       return {
         ...state,
-        jobName: actions.value,
+        taskName: action.value,
       };
-    case "set-content":
+    case "add-task":
       return {
         ...state,
-        noteContent: actions.value,
+        taskList: [...state.taskList, action.addNewTask],
       };
-    case "add-job":
+    case "delete-task":
+      const newlisttask = [...state.taskList];
+      newlisttask.splice(action.index, 1);
       return {
         ...state,
-        jobList: [...state.jobList, actions.newJob],
+        taskList: newlisttask,
       };
-    case "delete-job":
-      const newJobList = [...state.jobList];
-      newJobList.splice(actions.id, 1);
-      return {
-        ...state,
-        jobList: newJobList,
-      };
+
     default:
-      throw new Error("invalid Ation");
+      throw new Error("Invalid action");
   }
 };
-// action definition
-
-const setJob = (value) => {
-  return {
-    type: "set-value",
-    value,
-  };
-};
-const setNoteContent = (value) => {
-  return {
-    type: "set-content",
-    value,
-  };
-};
-const addValue = (newJob) => {
-  return { type: "add-job", newJob };
-};
-const deleteJob = (id) => {
-  return {
-    type: "delete-job",
-    id,
-  };
-};
-
 function TodoReact() {
-  const refJob = useRef();
   const [state, dispatch] = useReducer(reducer, initState);
-    const { jobName, noteContent, jobList } = state;
-    
-  const handlerSubmit = () => {
-    if (jobName !== "" && noteContent !== "") {
-      const newJob = { jobName, noteContent };
-      dispatch(addValue(newJob));
-      dispatch(setJob(""));
-      dispatch(setNoteContent(""));
-      refJob.current.focus();
+  const { taskName, taskList } = state;
+  const taskRef = useRef();
+  const [selectedIndex, setselectedIndex] = useState(-1);
+  const [editValueSend, setEditValueSend] = useState(-1);
+  const [isVisibleEditModal, setisVisibleEditModal] = useState(false);
+  const handlerAddTask = () => {
+    if (taskName !== "") {
+      dispatch(addTask(taskName));
+      dispatch(setTaskName(""));
     } else {
-      alert("価値　入力　して下さい");
+      alert("Task name is empty!");
     }
   };
-  const handlerDelete = (id) => {
-    dispatch(deleteJob(id));
+  const handlerDelete = (index) => {
+    dispatch(deleteTask(index));
   };
-    
+  const handlerEdit = (index) => {
+    setisVisibleEditModal(true);
+    setEditValueSend(taskList[selectedIndex]);
+    setselectedIndex(index);
+    console.log(taskList[selectedIndex]);
+  };
+  const handlerSave = (editValueChange) => {
+    if (selectedIndex !== -1) {
+      taskList[selectedIndex] = editValueChange;
+      setselectedIndex(-1);
+      setisVisibleEditModal(false);
+    } else {
+      throw new Error("Something occored while save !");
+    }
+  };
   return (
-    <div className="p-10 font-mono flex gap-20 ">
-      <span className="flex flex-col">
-        <h1 className="text-[100px]  font-bold text-orange-400">Todo</h1>
-        Job :
-        <input
-          ref={refJob}
-          value={jobName}
-          onChange={(e) => dispatch(setJob(e.target.value))}
-          placeholder="enter your Job"
-          className="border-2 border-orange-200 w-[200px] h-[25px] rounded-t-xl"
-        />
-        Note :
-        <textarea
-          value={noteContent}
-          onChange={(e) => dispatch(setNoteContent(e.target.value))}
-          placeholder="enter your Note"
-          className="border-2 border-orange-200 w-[200px] h-[100px] rounded-t-xl"
-        />
-        <button
-          className=" border-2 rounded-2xl w-[100px] h-[50px] mt-10 ml-5 bg-gradient-to-bl from-orange-100 via-pink-100 to-purple-300 hover:ring-4 ring-blue-100 animate-bounce"
-          onClick={handlerSubmit}>
-          Submit
-        </button>
-      </span>
-      <span className="mx-auto mt-10">
-        <h2 className="text-[20px] p-3">List Jobs</h2>
-        <ul className="w-[400px] h-[400px] overflow-auto border-2 bg-slate-300">
-          {jobList.map((job, index) => {
-            return (
-              <li key={index} className="border m-2">
-                <div>
-                  <p className="p-2">Name of Job:</p>
-                  {job.jobName}
-                  <p className="p-2">note content:</p>
-                  {job.noteContent}
-                </div>
-                <button
-                  onClick={()=>handlerDelete(index)}
-                  className="border rounded-xl bg-yellow-300 p-2">
-                  Delete
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </span>
+    <div className="w-[700px] h-[500px]  rounded-xl shadow-lg mx-auto mt-20 border-t-4 border-green-200 flex flex-col items-center overflow-auto font-mono">
+      {!isVisibleEditModal ? (
+        <>
+          <span className="font-medium pt-10 italic text-[30px]">
+            To do with react
+          </span>
+          <span className=" mt-10">
+            <input
+              ref={taskRef}
+              value={taskName}
+              onChange={(e) => dispatch(setTaskName(e.target.value))}
+              className="w-[300px] h-[50px] border border-slate-200 cursor-pointer rounded-lg p-3"
+            />
+            <button
+              onClick={() => handlerAddTask()}
+              className="p-3 m-3 border-2 w-[100px] border-yellow-50 rounded-lg bg-green-400 hover:ring-2 ring-green-400">
+              Add
+            </button>
+          </span>
+          <span>
+            <ListModal
+              taskList={taskList}
+              handlerDelete={handlerDelete}
+              handlerEdit={handlerEdit}
+            />
+          </span>
+        </>
+      ) : (
+        <>
+          <EditModal handlerSave={handlerSave} editvalue={editValueSend} />
+        </>
+      )}
     </div>
   );
 }
+
 export default TodoReact;
